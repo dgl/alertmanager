@@ -15,6 +15,7 @@ package config
 
 import (
 	"fmt"
+	"net/textproto"
 	"regexp"
 	"strings"
 	"time"
@@ -137,6 +138,14 @@ var (
 		Subject: `{{ template "sns.default.subject" . }}`,
 		Message: `{{ template "sns.default.message" . }}`,
 	}
+
+	// DefaultCustomConfig defines default values for Custom configurations.
+	DefaultCustomConfig = CustomConfig{
+		NotifierConfig: NotifierConfig{
+			VSendResolved: true,
+		},
+		Method: "POST",
+	}
 )
 
 // NotifierConfig contains base options common across all notifier configurations.
@@ -181,7 +190,7 @@ func (c *EmailConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Header names are case-insensitive, check for collisions.
 	normalizedHeaders := map[string]string{}
 	for h, v := range c.Headers {
-		normalized := strings.Title(h)
+		normalized := textproto.CanonicalMIMEHeaderKey(h)
 		if _, ok := normalizedHeaders[normalized]; ok {
 			return fmt.Errorf("duplicate header %q in email config", normalized)
 		}
@@ -625,6 +634,49 @@ func (c *SNSConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	if (c.Sigv4.AccessKey == "") != (c.Sigv4.SecretKey == "") {
 		return fmt.Errorf("must provide a AWS SigV4 Access key and Secret Key if credentials are specified in the SNS config")
+	}
+	return nil
+}
+
+// CustomConfig configures notifications via a custom webhook.
+type CustomConfig struct {
+	NotifierConfig `yaml:",inline" json:",inline"`
+
+	HTTPConfig *commoncfg.HTTPClientConfig `yaml:"http_config,omitempty" json:"http_config,omitempty"`
+
+	Format     string                 `yaml:"format" json:"format"`
+	URL        Secret                 `yaml:"url" json:"url"`
+	Method     string                 `yaml:"method,omitempty" json:"method,omitempty"`
+	Body       map[string]interface{} `yaml:"body,omitempty" json:"body,omitempty"`
+	Headers    map[string]string      `yaml:"headers,omitempty" json:"headers,omitempty"`
+	RetryCodes []int                  `yaml:"retry_codes" json:"retry_codes"`
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+func (c *CustomConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	*c = DefaultCustomConfig
+	type plain CustomConfig
+	if err := unmarshal((*plain)(c)); err != nil {
+		return err
+	}
+	if c.Format != "go_template" {
+		return fmt.Errorf("Format must be set to \"go_template\"")
+	}
+	if c.Method != "GET" && c.Method != "POST" {
+		return fmt.Errorf("HTTP method %q is unsupported in custom config, must be POST or GET", c.Method)
+	}
+	// Header names are case-insensitive, check for collisions.
+	normalizedHeaders := map[string]string{}
+	for h, v := range c.Headers {
+		normalized := textproto.CanonicalMIMEHeaderKey(h)
+		if _, ok := normalizedHeaders[normalized]; ok {
+			return fmt.Errorf("duplicate header %q in custom config", normalized)
+		}
+		normalizedHeaders[normalized] = v
+	}
+	c.Headers = normalizedHeaders
+	if _, ok := c.Headers["Content-Type"]; !ok {
+		c.Headers["Content-Type"] = "application/json"
 	}
 	return nil
 }

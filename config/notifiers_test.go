@@ -605,6 +605,27 @@ func TestWeChatTypeMatcher(t *testing.T) {
 	}
 }
 
+func TestCustomHeadersCollision(t *testing.T) {
+	in := `
+url: 'http://example.com'
+format: "go_template"
+headers:
+  CONTENT-TYPE: 'application/json'
+  Content-type: 'application/json'
+`
+	var cfg CustomConfig
+	err := yaml.UnmarshalStrict([]byte(in), &cfg)
+
+	expected := "duplicate header \"Content-Type\" in custom config"
+
+	if err == nil {
+		t.Fatalf("no error returned, expected:\n%v", expected)
+	}
+	if err.Error() != expected {
+		t.Errorf("\nexpected:\n%v\ngot:\n%v", expected, err.Error())
+	}
+}
+
 func newBoolPointer(b bool) *bool {
 	return &b
 }

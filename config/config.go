@@ -245,6 +245,9 @@ func resolveFilepaths(baseDir string, cfg *Config) {
 		for _, cfg := range receiver.SNSConfigs {
 			cfg.HTTPConfig.SetDirectory(baseDir)
 		}
+		for _, cfg := range receiver.CustomConfigs {
+			cfg.HTTPConfig.SetDirectory(baseDir)
+		}
 	}
 }
 
@@ -458,6 +461,11 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		for _, sns := range rcv.SNSConfigs {
 			if sns.HTTPConfig == nil {
 				sns.HTTPConfig = c.Global.HTTPConfig
+			}
+		}
+		for _, custom := range rcv.CustomConfigs {
+			if custom.HTTPConfig == nil {
+				custom.HTTPConfig = c.Global.HTTPConfig
 			}
 		}
 		names[rcv.Name] = struct{}{}
@@ -799,6 +807,7 @@ type Receiver struct {
 	PushoverConfigs  []*PushoverConfig  `yaml:"pushover_configs,omitempty" json:"pushover_configs,omitempty"`
 	VictorOpsConfigs []*VictorOpsConfig `yaml:"victorops_configs,omitempty" json:"victorops_configs,omitempty"`
 	SNSConfigs       []*SNSConfig       `yaml:"sns_configs,omitempty" json:"sns_configs,omitempty"`
+	CustomConfigs    []*CustomConfig    `yaml:"custom_configs,omitempty" json:"custom_configs,omitempty"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for Receiver.

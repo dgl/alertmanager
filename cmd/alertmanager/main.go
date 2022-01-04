@@ -49,6 +49,7 @@ import (
 	"github.com/prometheus/alertmanager/inhibit"
 	"github.com/prometheus/alertmanager/nflog"
 	"github.com/prometheus/alertmanager/notify"
+	"github.com/prometheus/alertmanager/notify/custom"
 	"github.com/prometheus/alertmanager/notify/email"
 	"github.com/prometheus/alertmanager/notify/opsgenie"
 	"github.com/prometheus/alertmanager/notify/pagerduty"
@@ -168,6 +169,9 @@ func buildReceiverIntegrations(nc *config.Receiver, tmpl *template.Template, log
 	}
 	for i, c := range nc.SNSConfigs {
 		add("sns", i, c, func(l log.Logger) (notify.Notifier, error) { return sns.New(c, tmpl, l) })
+	}
+	for i, c := range nc.CustomConfigs {
+		add("custom", i, c, func(l log.Logger) (notify.Notifier, error) { return custom.New(c, tmpl, l) })
 	}
 	if errs.Len() > 0 {
 		return nil, &errs

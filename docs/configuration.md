@@ -434,6 +434,8 @@ Note: As part of lifting the past moratorium on new receivers it was agreed that
 name: <string>
 
 # Configurations for several notification integrations.
+custom_configs:
+  [ - <custom_config>, ... ]
 email_configs:
   [ - <email_config>, ... ]
 opsgenie_configs:
@@ -824,6 +826,19 @@ attributes:
 [ role_arn: <string> ]
 ```
 
+## `<custom_config>`
+
+Custom configuration allows configuring a receiver that handles a JSON payload.
+
+```yaml
+# Whether to notify about resolved alerts.
+[ send_resolved: <boolean> | default = true ]
+
+[ url: <tmpl_string> ]
+```
+
+TODO: WIP, see https://gist.github.com/dgl/e4cbcdd6fda8d1d6c326c86688242609 for now.
+
 ## `<matcher>`
 
 A matcher is a string with a syntax inspired by PromQL and OpenMetrics. The syntax of a matcher consists of three tokens:
@@ -923,7 +938,8 @@ routing_key: <tmpl_string>
 
 ## `<webhook_config>`
 
-The webhook receiver allows configuring a generic receiver.
+The webhook receiver allows configuring a receiver that understands
+Alertmanager's generic notification payload.
 
 ```yaml
 # Whether to notify about resolved alerts.
